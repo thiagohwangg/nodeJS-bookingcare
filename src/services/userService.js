@@ -97,24 +97,25 @@ let createNewUseSer = (data) => {
       if (check === true) {
         resolve({
           errCode: 1,
-          message: "Your email is already is used, Plz try another email",
+          errMessage: "Your email is already is used, Plz try another email",
+        });
+      } else {
+        let hashPasswordFromBcrypt = await hashUserPassword(data.password);
+        await db.User.create({
+          email: data.email,
+          password: hashPasswordFromBcrypt,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          address: data.address,
+          phonenumber: data.phonenumber,
+          gender: data.gender === "1" ? true : false,
+          roleId: data.roleId,
+        });
+        resolve({
+          errCode: 0,
+          message: "OK",
         });
       }
-      let hashPasswordFromBcrypt = await hashUserPassword(data.password);
-      await db.User.create({
-        email: data.email,
-        password: hashPasswordFromBcrypt,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        address: data.address,
-        phonenumber: data.phonenumber,
-        gender: data.gender === "1" ? true : false,
-        roleId: data.roleId,
-      });
-      resolve({
-        errCode: 0,
-        message: "OK",
-      });
     } catch (error) {
       reject(error);
     }
@@ -149,8 +150,8 @@ let deleteUser = (userId) => {
     //   await foundUser.destroy();
     // }
     await db.User.destroy({
-      where: {id: userId}
-    })
+      where: { id: userId },
+    });
 
     resolve({
       errCode: 0,
@@ -162,15 +163,15 @@ let deleteUser = (userId) => {
 let updateUserData = (data) => {
   return new Promise(async (resolve, reject) => {
     try {
-      if(!data.id) {
+      if (!data.id) {
         resolve({
           errCode: 2,
-          errMessage: 'Missing required parameters!'
-        })
+          errMessage: "Missing required parameters!",
+        });
       }
       let user = await db.User.findOne({
         where: { id: data.id },
-        raw: false
+        raw: false,
       });
       if (user) {
         user.firstName = data.firstName;
@@ -180,24 +181,24 @@ let updateUserData = (data) => {
         await user.save();
         resolve({
           errCode: 0,
-          errMessage: 'Update the user succeeds!'
-        })
+          errMessage: "Update the user succeeds!",
+        });
       } else {
         resolve({
           errCode: 1,
-          errMessage: 'User not found!'
+          errMessage: "User not found!",
         });
       }
     } catch (error) {
-      reject(error)
+      reject(error);
     }
-  })
-}
+  });
+};
 
 module.exports = {
   handleUserLogin,
   getAllUsers,
   createNewUseSer,
   deleteUser,
-  updateUserData
+  updateUserData,
 };
