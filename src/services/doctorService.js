@@ -1,7 +1,6 @@
 const db = require("../models");
 require("dotenv").config();
-import { raw } from "body-parser";
-import _, { reject } from "lodash";
+import _ from "lodash";
 
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE;
 
@@ -68,13 +67,20 @@ let saveDetailInfoDoctor = (inputData) => {
         !inputData.doctorId ||
         !inputData.contentHTML ||
         !inputData.contentMarkdown ||
-        !inputData.action
+        !inputData.action ||
+        !inputData.selectedPrice ||
+        !inputData.selectedPayment ||
+        !inputData.selectedProvince ||
+        !inputData.nameClinic ||
+        !inputData.addressClinic ||
+        !inputData.note
       ) {
         resolve({
           errCode: 1,
           errMessage: "Missing parameter",
         });
       } else {
+        // upsert to Markdown
         if (inputData.action === "CREATE") {
           await db.Markdown.create({
             contentHTML: inputData.contentHTML,
@@ -95,6 +101,42 @@ let saveDetailInfoDoctor = (inputData) => {
 
             await doctorMarkdown.save();
           }
+        }
+
+        // upsert to Doctor_info table
+
+        let doctorInfo = await db.Doctor_Info.findOne({
+          where: {
+            doctorId: inputData.doctorId,
+          },
+          raw: false,
+        });
+
+
+        if (doctorInfo) {
+          // update
+          doctorInfo.doctorId = inputData.doctorId;
+          doctorInfo.priceId = inputData.selectedPrice;
+          doctorInfo.provinceId = inputData.selectedProvince;
+          doctorInfo.paymentId = inputData.selectedPayment;
+
+          doctorInfo.nameClinic = inputData.nameClinic;
+          doctorInfo.addressClinic = inputData.addressClinic;
+          doctorInfo.note = inputData.note;
+
+          await doctorInfo.save();
+        } else {
+          // create
+          await db.Doctor_Info.create({
+            doctorId: inputData.doctorId,
+            priceId: inputData.selectedPrice,
+            provinceId: inputData.selectedProvince,
+            paymentId: inputData.selectedPayment,
+
+            nameClinic: inputData.nameClinic,
+            addressClinic: inputData.addressClinic,
+            note: inputData.note,
+          });
         }
 
         resolve({
@@ -176,16 +218,16 @@ let bulkCreateSchedule = (data) => {
         let existing = await db.Schedule.findAll({
           where: { doctorId: data.doctorId, date: data.formatedDate },
           attributes: ["timeType", "date", "doctorId", "maxNumber"],
-          raw: true
+          raw: true,
         });
-        
-        // compare different 
+
+        // compare different
         let toCreate = _.differenceWith(schedule, existing, (a, b) => {
           return a.timeType === b.timeType && +a.date === +b.date;
         });
 
         // create data
-        if(toCreate && toCreate.length > 0) {
+        if (toCreate && toCreate.length > 0) {
           await db.Schedule.bulkCreate(toCreate);
         }
         resolve({
@@ -200,13 +242,13 @@ let bulkCreateSchedule = (data) => {
 };
 
 let getScheduleByDate = (doctorId, date) => {
-  return new Promise(async(resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      if(!doctorId || !date) {
+      if (!doctorId || !date) {
         resolve({
           errCode: 1,
-          errMessage: 'Missing required parameters!'
-        })
+          errMessage: "Missing required parameters!",
+        });
       } else {
         let dataSchedule = await db.Schedule.findAll({
           where: {
@@ -222,21 +264,20 @@ let getScheduleByDate = (doctorId, date) => {
           ],
           raw: false,
           nest: true,
-        })
+        });
 
-        if(!dataSchedule) dataSchedule = [];
+        if (!dataSchedule) dataSchedule = [];
 
         resolve({
           errCode: 0,
-          data: dataSchedule
-        })
+          data: dataSchedule,
+        });
       }
     } catch (error) {
-      reject(error)
-      
+      reject(error);
     }
-  })
-}
+  });
+};
 
 module.exports = {
   getTopDoctorHome,
@@ -244,5 +285,5 @@ module.exports = {
   saveDetailInfoDoctor,
   getDetailDoctorById,
   bulkCreateSchedule,
-  getScheduleByDate
+  getScheduleByDate,
 };
