@@ -5,20 +5,28 @@ import { sendSimpleEmail } from "./emailService";
 let postBookAppointment = (data) => {
   return new Promise(async (resolve, reject) => {
     try {
-      if (!data.email || !data.doctorId || !data.timeType || !data.date) {
+      if (
+        !data.email ||
+        !data.doctorId ||
+        !data.timeType ||
+        !data.date ||
+        !data.fullName
+      ) {
         resolve({
           errCode: 1,
           errMessage: "Missing parameter",
         });
       } else {
 
+
         await sendSimpleEmail({
           receiverEmail: data.email,
-          patientName: 'Hỏi dân IT patient',
-          time: '8:00 - 9:00 Chủ nhật 1/8/2021',
-          doctorName: "Erik",
-          redirectLink: 'https://www.youtube.com/@hoidanit'
-        })
+          patientName: data.fullName,
+          time: data.timeString,
+          doctorName: data.doctorName,
+          language: data.language,
+          redirectLink: "https://www.youtube.com/@hoidanit",
+        });
         // upsert patient
         let user = await db.User.findOrCreate({
           where: { email: data.email },
@@ -52,6 +60,8 @@ let postBookAppointment = (data) => {
     }
   });
 };
+
+
 
 module.exports = {
   postBookAppointment,
