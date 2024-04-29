@@ -1,6 +1,6 @@
 const db = require("../models");
 require("dotenv").config();
-import _ from "lodash"
+import _ from "lodash";
 
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE;
 
@@ -60,24 +60,44 @@ let getAllDoctors = () => {
   });
 };
 
+let checkRequiredFields = (inputData) => {
+  let arrFields = [
+    "doctorId",
+    "contentHTML",
+    "contentMarkdown",
+    "action",
+    "selectedPrice",
+    "selectedPayment",
+    "selectedProvince",
+    "nameClinic",
+    "addressClinic",
+    "note",
+    "specialtyId",
+  ];
+  let isValid = true;
+  let element = "";
+  for (let i = 0; i < arrFields.length; i++) {
+    if (!inputData[arrFields[i]]) {
+      isValid = false;
+      element = arrFields[i];
+      break;
+    }
+  }
+
+  return {
+    isValid,
+    element,
+  };
+};
+
 let saveDetailInfoDoctor = (inputData) => {
   return new Promise(async (resolve, reject) => {
     try {
-      if (
-        !inputData.doctorId ||
-        !inputData.contentHTML ||
-        !inputData.contentMarkdown ||
-        !inputData.action ||
-        !inputData.selectedPrice ||
-        !inputData.selectedPayment ||
-        !inputData.selectedProvince ||
-        !inputData.nameClinic ||
-        !inputData.addressClinic ||
-        !inputData.note
-      ) {
+      let checkObj = checkRequiredFields(inputData);
+      if (checkObj.isValid === false) {
         resolve({
           errCode: 1,
-          errMessage: "Missing parameter",
+          errMessage: `Missing parameter: ${checkObj.element}`,
         });
       } else {
         // upsert to Markdown
@@ -122,6 +142,8 @@ let saveDetailInfoDoctor = (inputData) => {
           doctorInfo.nameClinic = inputData.nameClinic;
           doctorInfo.addressClinic = inputData.addressClinic;
           doctorInfo.note = inputData.note;
+          doctorInfo.specialtyId = inputData.specialtyId;
+          doctorInfo.clinicId = inputData.clinicId;
 
           await doctorInfo.save();
         } else {
@@ -135,6 +157,8 @@ let saveDetailInfoDoctor = (inputData) => {
             nameClinic: inputData.nameClinic,
             addressClinic: inputData.addressClinic,
             note: inputData.note,
+            specialtyId: inputData.specialtyId,
+            clinicId: inputData.clinicId,
           });
         }
 
@@ -289,7 +313,6 @@ let getScheduleByDate = (doctorId, date) => {
               as: "doctorData",
               attributes: ["firstName", "lastName"],
             },
-
           ],
           raw: false,
           nest: true,
@@ -309,9 +332,9 @@ let getScheduleByDate = (doctorId, date) => {
 };
 
 let getExtraInfoDoctorById = (idInput) => {
-  return new Promise(async(resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      if(!idInput) {
+      if (!idInput) {
         resolve({
           errCode: 1,
           errMessage: "Missing required parameter!",
@@ -319,7 +342,7 @@ let getExtraInfoDoctorById = (idInput) => {
       } else {
         let data = await db.Doctor_Info.findOne({
           where: {
-            doctorId: idInput
+            doctorId: idInput,
           },
           attributes: {
             exclude: ["id", "doctorId"],
@@ -342,25 +365,25 @@ let getExtraInfoDoctorById = (idInput) => {
             },
           ],
           raw: false,
-          nest: true
-        })
+          nest: true,
+        });
 
-        if(!data) data = {};
+        if (!data) data = {};
         resolve({
           errCode: 0,
-          data: data
-        })
+          data: data,
+        });
       }
     } catch (error) {
-      reject(error)
+      reject(error);
     }
-  })
-}
+  });
+};
 
 let getProfileDoctorById = (inputId) => {
-  return new Promise(async(resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      if(!inputId) {
+      if (!inputId) {
         resolve({
           errCode: 1,
           errMessage: "Missing required parameter!",
@@ -423,11 +446,10 @@ let getProfileDoctorById = (inputId) => {
         });
       }
     } catch (error) {
-      reject(error)
+      reject(error);
     }
-  })
-}
-
+  });
+};
 
 module.exports = {
   getTopDoctorHome,
@@ -437,5 +459,5 @@ module.exports = {
   bulkCreateSchedule,
   getScheduleByDate,
   getExtraInfoDoctorById,
-  getProfileDoctorById
+  getProfileDoctorById,
 };
