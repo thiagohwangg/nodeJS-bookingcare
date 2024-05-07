@@ -1,6 +1,7 @@
 const db = require("../models");
 require("dotenv").config();
 import _ from "lodash";
+import { sendAttachment } from "./emailService";
 
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE;
 
@@ -504,7 +505,7 @@ let getListPatientForDoctor = (doctorId, date) => {
 let sendRemedy = (data) => {
   return new Promise(async (resolve, reject) => {
     try {
-      if (!data.email || !data.doctorId || !data.patientId || !data.timeType) {
+      if (!data.email || !data.doctorId || !data.patientId || !data.timeType || !data.imgBase64) {
         resolve({
           errCode: 1,
           errMessage: "Missing required parameter!",
@@ -527,9 +528,10 @@ let sendRemedy = (data) => {
         }
 
         // send email remedy
+        await sendAttachment(data)
         resolve({
           errCode: 0,
-          data,
+          errMessage: 'OK',
         });
       }
     } catch (error) {
